@@ -1,0 +1,117 @@
+openapi: 3.0.0
+info:
+  title: Azure AD OAuth Token Endpoint
+  description: |
+    Specification for obtaining access tokens from Azure AD OAuth endpoint.
+    This token can be used for authenticating requests to Azure Document Intelligence and other Azure services.
+
+    The complete endpoint URL will be in the format:
+    https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token
+
+    Note: Replace the following values with your own:
+    - tenant_id: Your Azure AD tenant ID (e.g., 3b14256e-b9d7-5321-2fdf-bebfb6c28434)
+    - client_id: Your application's client ID
+    - client_secret: Your application's client secret
+  version: '2.0'
+  contact:
+    name: Microsoft Identity Platform
+    url: https://docs.microsoft.com/azure/active-directory/develop/
+
+servers:
+  - url: https://login.microsoftonline.com/{tenant_id}
+    description: Azure Active Directory OAuth endpoint
+    variables:
+      tenant_id:
+        description: Your Azure AD tenant ID
+        default: your-tenant-id
+
+paths:
+  /oauth2/v2.0/token:
+    post:
+      summary: Get Access Token
+      description: |
+        Retrieves an access token using client credentials flow.
+        This endpoint requires your application to be registered in Azure AD.
+
+        Full URL format: https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token
+      operationId: getAccessToken
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - grant_type
+                - client_id
+                - client_secret
+                - scope
+              properties:
+                grant_type:
+                  type: string
+                  description: The type of grant to use for the token request
+                  enum: [client_credentials]
+                  example: client_credentials
+                client_id:
+                  type: string
+                  description: Your application's client ID from Azure AD
+                  example: 78c4e324-a601-4aa4-be39-3fc0d595b491
+                client_secret:
+                  type: string
+                  description: Your application's client secret from Azure AD
+                  format: password
+                  example: DNU8Q~303Yztj5EkNUN860Ny_Sfu2.U.YnnnLaIB
+                scope:
+                  type: string
+                  description: The scope of the access request
+                  example: https://cognitiveservices.azure.com/.default
+            example:
+              grant_type: client_credentials
+              client_id: your-client-id
+              client_secret: your-client-secret
+              scope: https://cognitiveservices.azure.com/.default
+      responses:
+        '200':
+          description: Successfully retrieved access token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token_type:
+                    type: string
+                    example: Bearer
+                  expires_in:
+                    type: integer
+                    description: Token expiration time in seconds
+                    example: 3599
+                  ext_expires_in:
+                    type: integer
+                    description: Extended expiration time in seconds
+                    example: 3599
+                  access_token:
+                    type: string
+                    description: The JWT access token
+                    example: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1...
+              example:
+                token_type: Bearer
+                expires_in: 3599
+                ext_expires_in: 3599
+                access_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1...
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: invalid_request
+                  error_description:
+                    type: string
+                    example: The provided client secret is invalid
+        '401':
+          description: Authentication failed
+        '403':
+          description: Insufficient permissions

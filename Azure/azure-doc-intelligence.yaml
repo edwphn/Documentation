@@ -1,0 +1,189 @@
+openapi: 3.0.0
+info:
+  title: Azure Document Intelligence API
+  description: |
+    API specification for Azure Document Intelligence service, focusing on the document analysis
+    capabilities including OCR and PDF text layer addition.
+  version: '2024-07-31-preview'
+  contact:
+    name: Azure Support
+    url: https://azure.microsoft.com/support/
+
+servers:
+  - url: https://{endpoint}.cognitiveservices.azure.com
+    variables:
+      endpoint:
+        description: Your Azure Document Intelligence endpoint
+        default: your-resource-name
+
+paths:
+  /documentintelligence/documentModels/prebuilt-read:analyze:
+    post:
+      summary: Analyze document
+      description: |
+        Initiates asynchronous document analysis process. For PDF documents,
+        can optionally add a searchable text layer to the output PDF.
+      parameters:
+        - name: api-version
+          in: query
+          required: true
+          schema:
+            type: string
+            default: '2024-07-31-preview'
+        - name: features
+          in: query
+          required: false
+          description: Optional features to enable during analysis
+          schema:
+            type: string
+            enum: [ocrHighResolution]
+        - name: output
+          in: query
+          required: false
+          description: Output format specification
+          schema:
+            type: string
+            enum: [pdf]
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+              description: The document file to analyze (e.g., PDF)
+      responses:
+        '202':
+          description: Analysis job accepted
+          headers:
+            Operation-Location:
+              schema:
+                type: string
+                description: URL to retrieve the analysis results
+                example: https://endpoint.cognitiveservices.azure.com/documentintelligence/documentModels/prebuilt-read/analyzeResults/fbf5b723-28a9-4b0c-b53a-445d30963835?api-version=2024-07-31-preview
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '429':
+          description: Too many requests
+
+  /documentintelligence/documentModels/prebuilt-read/analyzeResults/{resultId}:
+    get:
+      summary: Get analysis results
+      description: Retrieves the results of a document analysis operation in JSON format
+      parameters:
+        - name: resultId
+          in: path
+          required: true
+          description: The ID of the analysis operation
+          schema:
+            type: string
+        - name: api-version
+          in: query
+          required: true
+          schema:
+            type: string
+            default: '2024-07-31-preview'
+      responses:
+        '200':
+          description: Analysis results retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResult'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Result not found
+        '429':
+          description: Too many requests
+
+  /documentintelligence/documentModels/prebuilt-read/analyzeResults/{resultId}/pdf:
+    get:
+      summary: Get processed PDF
+      description: |
+        Retrieves the processed PDF document with added text layer (if requested in the original analyze call)
+      parameters:
+        - name: resultId
+          in: path
+          required: true
+          description: The ID of the analysis operation
+          schema:
+            type: string
+        - name: api-version
+          in: query
+          required: true
+          schema:
+            type: string
+            default: '2024-07-31-preview'
+      responses:
+        '200':
+          description: PDF retrieved successfully
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+        '404':
+          description: PDF not found
+        '429':
+          description: Too many requests
+
+components:
+  schemas:
+    AnalysisResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [notStarted, running, succeeded, failed]
+        createdDateTime:
+          type: string
+          format: date-time
+        lastUpdatedDateTime:
+          type: string
+          format: date-time
+        analyzeResult:
+          type: object
+          properties:
+            version:
+              type: string
+            readResults:
+              type: array
+              items:
+                type: object
+                properties:
+                  page:
+                    type: integer
+                  angle:
+                    type: number
+                  width:
+                    type: number
+                  height:
+                    type: number
+                  unit:
+                    type: string
+                  lines:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        text:
+                          type: string
+                        boundingBox:
+                          type: array
+                          items:
+                            type: number
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Azure AD JWT token
+
+security:
+  - BearerAuth: []
